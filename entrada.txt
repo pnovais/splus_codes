@@ -1,0 +1,33 @@
+gal-A2589-A2596_uJAVA_swp.txt
+gal-A2589-A2596_gSDSS_swp.txt
+gal-A2589-A2596_rSDSS_swp.txt
+gal-A2589-A2596_iSDSS_swp.txt
+gal-A2589-A2596_zSDSS_swp.txt
+gal-A2589-A2596_J0378_swp.txt
+gal-A2589-A2596_J0395_swp.txt
+gal-A2589-A2596_J0410_swp.txt
+gal-A2589-A2596_J0430_swp.txt
+gal-A2589-A2596_J0515_swp.txt
+gal-A2589-A2596_J0660_swp.txt
+gal-A2589-A2596_J0861_swp.txt
+out_galaxia_A2589-A2596.txt
+results_gal_A2589-A2596.txt
+A2589-A2596
+240
+320
+40
+100
+2
+100
+400
+80
+380
+
+!linha 1-12: nome dos arquivos de dados
+!linha 13 e 14: nome dos arquivos de resultados e output com os dados em todas as bandas
+!linha 15: nome da galáxia
+!linha 16-19: coordenadas do céu
+!linha 20: tamanho do bin
+!linha 21-24: coordenadas do recorte
+!
+!

@@ -1,0 +1,12 @@
+gal-A2589-A2596_uJAVA_swp.txt
+gal-A2589-A2596_gSDSS_swp.txt
+gal-A2589-A2596_rSDSS_swp.txt
+gal-A2589-A2596_iSDSS_swp.txt
+gal-A2589-A2596_zSDSS_swp.txt
+gal-A2589-A2596_J0378_swp.txt
+gal-A2589-A2596_J0395_swp.txt
+gal-A2589-A2596_J0410_swp.txt
+gal-A2589-A2596_J0430_swp.txt
+gal-A2589-A2596_J0515_swp.txt
+gal-A2589-A2596_J0660_swp.txt
+gal-A2589-A2596_J0861_swp.txt
