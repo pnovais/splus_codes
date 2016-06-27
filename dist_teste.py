@@ -27,20 +27,23 @@ def distance(x1,y1,x2,y2):
 df = pd.read_table('teste.txt', delim_whitespace=True, header=None)
 df.columns=['x','y','flux_u','flux_g','flux_r','flux_i','flux_z','flux_J0378','flux_J0395','flux_J0410', 'flux_J0430','flux_J0515','flux_J0660','flux_J0861']
 
+compr = len(df)
+
 labels = []
 
 #criando os rotulos iniciais
-for row in range(0,len(df)):
+for row in range(0,compr):
     labels.append(row)
 
 df['label'] = labels
 
 #print(df.tail())
 
+
 n=0
 
-for i in range(0,len(df)/10):
-    for j in range(i+1,len(df)/10):
+for i in range(0,compr):
+    for j in range(i+1,compr):
         dd = distance(df['x'][i], df['y'][i], df['x'][j], df['y'][j])
         if(dd==1):
             ii=min(df['label'][i],df['label'][j])
@@ -50,15 +53,33 @@ for i in range(0,len(df)/10):
             df['label'][i]=ii
             df['label'][j]=ii
 #            print(ii)
-            for k in range(0,len(df)/10):
+            for k in range(0,compr):
                 if(df['label'][k]==iclio | df['label'][k]==icljo):
                     df['label'][k]==ii
 
-#print(df.tail())
 
-#        print(df['x'][i],df['y'][i],df['x'][j], df['y'][j],dd)
-#        if(dd==1):
 
+#Criando histogramas dos resultados
+
+hist = pd.Series(np.zeros(compr))
+
+for k in range(0,compr):
+    l=df['label'][k]
+    hist[k] = hist[k]+1
+
+nct=0
+kmax=0
+
+for k in range(0,compr):
+    if(hist[k] > 0):
+        nct=nct+1
+        print(nct,hist[k])
+        kmax=max(kmax,hist[k])
+        if(hist[k] == kmax):
+            iclmax=k
+
+print('numero de objetos = %d, npix do maior objeto = %d' %(nct,kmax))
+print('ident. do maior objeto = %d' %iclmax)
 
 print('------')
 
