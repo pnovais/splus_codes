@@ -18,6 +18,7 @@ from functools import reduce
 from ff_bug import FriendsOfFriends
 import matplotlib.cm as cm
 from matplotlib.colors import LogNorm
+from mpl_toolkits.mplot3d import Axes3D
 
 
 class bcolors:
@@ -268,6 +269,34 @@ df_rss2['logic']= np.where(df_rss['flux_r'] > limiar, 1, 0)
 np.savetxt('fof2.txt',df_rss2,fmt=formats2, delimiter='\t')
 
 #df_seg['distancia'] = df_seg.apply(dist, axis=1)
+'''
+Criando um grafico 3D
+
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+
+ax.set_title('3D Scatter Plot')
+ax.set_xlabel('Column a')
+ax.set_ylabel('Column b')
+ax.set_zlabel('Column c')
+
+ax.set_xlim(0, 500)
+ax.set_ylim(0, 500)
+ax.set_zlim(-2, 2)
+
+ax.view_init(elev=0, azim=20)              # elevation and angle
+ax.dist=12
+
+ax.scatter(
+           df_rss2['x'], df_rss2['y'], df_rss2['logic'],  # data
+           color='purple',                            # marker colour
+           marker='o',                                # marker shape
+           s=30                                       # marker size
+           )
+
+
+plt.show()
+'''
 
 print(df_seg.head())
 

@@ -17,15 +17,18 @@ from functools import reduce
 import math
 
 ini=time.time()
-
+exit
 def distance(x1,y1,x2,y2):
     dist = (x1-x2)**2 + (y1-y2)**2
     d = np.sqrt(dist)
     return d
 
 
+
 df = pd.read_table('teste.txt', delim_whitespace=True, header=None)
-df.columns=['x','y','flux_u','flux_g','flux_r','flux_i','flux_z','flux_J0378','flux_J0395','flux_J0410', 'flux_J0430','flux_J0515','flux_J0660','flux_J0861']
+df.columns=['x','y','flux_u','flux_g','flux_r','flux_i','flux_z',
+           'flux_J0378','flux_J0395','flux_J0410', 'flux_J0430',
+           'flux_J0515','flux_J0660','flux_J0861']
 
 compr = len(df)
 
