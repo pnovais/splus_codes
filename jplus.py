@@ -19,6 +19,8 @@ from ff_bug import FriendsOfFriends
 import matplotlib.cm as cm
 from matplotlib.colors import LogNorm
 from mpl_toolkits.mplot3d import Axes3D
+import fof_fortran
+import matplotlib.mlab as mlab
 
 
 class bcolors:
@@ -52,22 +54,22 @@ ini=time.time()
 
 now = datetime.date.today()
 
-print(bcolors.OKBLUE + '===================================================================================' )
-print('===================================S3P PROGRAM=====================================')
-print('=========================Stellar Populations Pixel by Pixel========================')
-print('==================================== %s ===================================' %now)
-print('===================================================================================')
-print('==================================================================================='+ bcolors.ENDC)
+print(bcolors.OKBLUE + '===================================================================' )
+print('===========================S3P PROGRAM=============================')
+print('=================Stellar Populations Pixel by Pixel================')
+print('============================ %s ===========================' %now)
+print('===================================================================')
+print('==================================================================='+ bcolors.ENDC)
 
 
 
 
 #ABRINDO OS ARQUIVOS COM AS CONTAGENS (12 BANDAS)
 print('')
-print('*'*83)
+print('*'*67)
 str1 = '  LEITURA DOS ARQUIVOS'
-print(bcolors.FAIL + str1.center(80)+ bcolors.ENDC)
-print('*'*83)
+print(bcolors.FAIL + str1.center(64)+ bcolors.ENDC)
+print('*'*67)
 print('Lendo os arquivos com as contagens, em todas as bandas...')
 
 outpath = '/Dropbox/DOUTORADO/JPLUS_clusters/gal_A2589A2593'
@@ -122,12 +124,15 @@ df_fin = reduce(lambda left, right: pd.merge(left,right),fluxes)
 
 saida_fluxes = 'all_band_fluxes.txt'
 
-formats=['%d','%d','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f']
-#headers=['x','y','flux_u','flux_g','flux_r','flux_i','flux_z','flux_J0378','flux_J0395','flux_J0410', 'flux_J0430','flux_J0515','flux_J0660','flux_J0861']
-headers2='x\ty\tflux_u\tflux_g\tflux_r\tflux_i\tflux_z\tflux_J0378\tflux_J0395\tflux_J0410\tflux_J0430\tflux_J0515\tflux_J0660\tflux_J0861'
+formats=['%d','%d','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f',
+         '%5.4f','%5.4f','%5.4f','%5.4f','%5.4f']
+#headers=['x','y','flux_u','flux_g','flux_r','flux_i','flux_z','flux_J0378',
+#'flux_J0395','flux_J0410', 'flux_J0430','flux_J0515','flux_J0660','flux_J0861']
+headers2='''x\ty\tflux_u\tflux_g\tflux_r\tflux_i\tflux_z\tflux_J0378\tflux_J0395
+           \tflux_J0410\tflux_J0430\tflux_J0515\tflux_J0660\tflux_J0861'''
 
 np.savetxt(saida_fluxes,df_fin, fmt=formats, delimiter='\t',header=headers2)
-print('Todas as contagens podem ser encontradas no arquivo "%s".' %saida_fluxes)
+print('As contagens podem ser encontradas no arquivo "%s".' %saida_fluxes)
 
 
 #COORDENADAS DO CEU E COORDENADAS DO RECORTE
@@ -145,9 +150,9 @@ str2='  Estatisticas do ceu, na banda r'
 s=str2.upper()
 
 print('')
-print('*'*83)
-print(bcolors.FAIL + s.center(80) + bcolors.ENDC)
-print('*'*83)
+print('*'*67)
+print(bcolors.FAIL + s.center(64) + bcolors.ENDC)
+print('*'*67)
 
 
 
@@ -157,7 +162,8 @@ print('*'*83)
 
 
 #selecao dos pontos que pertencem a regiao do ceu escolhida
-df = df_fin.ix[(df_fin['x'] > xc1) & (df_fin['x'] < xc2) & (df_fin['y'] > yc1) & (df_fin['y'] < yc2) ]
+df = df_fin.ix[(df_fin['x'] > xc1) & (df_fin['x'] < xc2) & (df_fin['y'] > yc1)
+    & (df_fin['y'] < yc2) ]
 
 print('Sumario das estatistica do ceu, na banda r:')
 print('Media: %5.5f' %df['flux_r'].mean())
@@ -171,7 +177,8 @@ npbx=(xr2-xr1+1)/binn
 npby=(yr2-yr1+1)/binn
 
 #CRIANDO O DATAFRAME COM OS PIXEIS SOMENTE DA REGIAO RECORTADA
-df_recorte = df_fin.ix[(df_fin['x'] > xr1) & (df_fin['x'] < xr2) & (df_fin['y'] > yr1) & (df_fin['y'] < yr2) ]
+df_recorte = df_fin.ix[(df_fin['x'] > xr1) & (df_fin['x'] < xr2) &
+             (df_fin['y'] > yr1) & (df_fin['y'] < yr2) ]
 
 #CRIANDO O DF COM O CEU SUBTRAIDO DE TODAS AS BANDAS, NA REGIAO DE RECORTE
 #rss = Recortado e Sky Subtracted
@@ -190,19 +197,22 @@ df_corgr = df_rss['flux_g'] / df_rss['flux_r']
 str3="Algumas propriedades da area a ser analisada"
 
 print('')
-print('*'*83)
-print(bcolors.FAIL + str3.upper().center(80) + bcolors.ENDC)
-print('*'*83)
+print('*'*67)
+print(bcolors.FAIL + str3.upper().center(64) + bcolors.ENDC)
+print('*'*67)
 
 
 print('tamanho do bin: %d' %binn)
 print('Num. de pixeis binados, em x e y: %d, %d' %(npbx, npby))
-print('Contagens minimas e maximas, na banda r, com ceu subtraido: %5.4f, %5.4f' %(df_rss['flux_r'].min(), df_rss['flux_r'].max()))
-print('Cor* minimas e maximas, na banda r, com ceu subtraido: %5.4f, %5.4f' %(df_corgr.min(), df_corgr.max()))
+print('''Contagens min. e max., na banda r, ceu subtr.:
+      %5.4f, %5.4f''' %(df_rss['flux_r'].min(), df_rss['flux_r'].max()))
+print('''Cor* min. e max., na banda r, ceu subtr.: %5.4f, %5.4f'''
+      %(df_corgr.min(), df_corgr.max()))
 print('')
-print(bcolors.HEADER + '''***a cor foi calculada, de forma simplista e apenas para conferir os resultados,
-como a razao entre as bandas 1 e 2 (flux_banda1/flux_banda2), quanto menor a razao,
-mais vermelho o pixel''' +bcolors.ENDC)
+print(bcolors.HEADER + '''***a cor foi calculada, de forma simplista e apenas para
+      conferir os resultados,como a razao entre as bandas 1 e 2
+      (flux_banda1/flux_banda2), quanto menor a razao,mais
+      vermelho o pixel''' +bcolors.ENDC)
 print('')
 #print df_corgr.min(),df_corgr.max()
 
@@ -214,9 +224,9 @@ No nosso caso, usamos limiar = alpha*std_ceu
 
 str4 = "segmentacao"
 print('')
-print('*'*83)
-print(bcolors.FAIL + str4.upper().center(80) + bcolors.ENDC)
-print('*'*83)
+print('*'*67)
+print(bcolors.FAIL + str4.upper().center(64) + bcolors.ENDC)
+print('*'*67)
 
 alpha=1.5
 limiar=alpha*df['flux_r'].std()
@@ -236,7 +246,7 @@ print('Num. total de pixeis: %d' %pix)
 print('Pixeis acima do limiar: %d' %alimiar)
 print('Fracao de pixeis acima do limiar: %5.5f' %pix_acima)
 
-plt.scatter(df_seg['x'], df_seg['y'])
+#plt.scatter(df_seg['x'], df_seg['y'])
 #plt.show()
 
 np.savetxt('teste.txt',df_seg, fmt=formats, delimiter='\t')
@@ -248,9 +258,9 @@ a galaxia, separando dos residuos da imagem.
 str4="friends of friends"
 
 print('')
-print('*'*83)
-print(bcolors.FAIL + str4.upper().center(80) + bcolors.ENDC)
-print('*'*83)
+print('*'*67)
+print(bcolors.FAIL + str4.upper().center(64) + bcolors.ENDC)
+print('*'*67)
 
 '''
 df_fof=df_seg.ix[:,:2]
@@ -258,7 +268,8 @@ print(df_fof.head())
 np.savetxt('fof.txt',df_fof, delimiter='\t')
 '''
 
-formats2=['%d','%d','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%d']
+formats2=['%d','%d','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f',
+          '%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%d']
 
 
 #if-then-else using numpys where()
@@ -269,9 +280,55 @@ df_rss2['logic']= np.where(df_rss['flux_r'] > limiar, 1, 0)
 np.savetxt('fof2.txt',df_rss2,fmt=formats2, delimiter='\t')
 
 #df_seg['distancia'] = df_seg.apply(dist, axis=1)
-'''
-Criando um grafico 3D
 
+
+#print(df_seg.head())
+arr1=df_seg['x']
+arr2=df_seg['y']
+n=len(df_seg)
+l=1
+
+print(n)
+
+a = fof_fortran.fof(arr1, arr2,l,n)
+
+
+df_ff=pd.DataFrame(a)
+
+df_ff.columns = ['fof']
+
+compr=len(df_seg)
+labels = []
+
+
+
+#criando os rotulos iniciais
+for row in range(0,compr):
+    labels.append(row)
+
+
+df_seg['label'] = labels
+
+df_ff['label']=labels
+
+
+
+df_x = reduce(lambda left, right: pd.merge(left,right),[df_seg,df_ff])
+#df_x=df_seg.join(df_ff)
+
+#df_x = df_seg.join(df_ff, lsuffix='_l', rsuffix='_r')
+
+np.savetxt('indexes.txt',a,delimiter='\t')
+
+
+
+#MAKING HISTOGRAMS
+plt.hist(a)
+plt.axis([0, 50,0,8000])
+#plt.show()
+
+
+#Making a 3D plot
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 
@@ -282,24 +339,27 @@ ax.set_zlabel('Column c')
 
 ax.set_xlim(0, 500)
 ax.set_ylim(0, 500)
-ax.set_zlim(-2, 2)
+ax.set_zlim(33, 36)
 
 ax.view_init(elev=0, azim=20)              # elevation and angle
 ax.dist=12
 
 ax.scatter(
-           df_rss2['x'], df_rss2['y'], df_rss2['logic'],  # data
+           df_x['x'], df_x['y'], df_x['fof'],  # data
            color='purple',                            # marker colour
            marker='o',                                # marker shape
            s=30                                       # marker size
            )
 
 
-plt.show()
-'''
+#plt.show()
 
-print(df_seg.head())
+dfs = df_x.ix[(df_x['fof'] > 34.5) & (df_x['fof'] < 35.5)]
 
+np.savetxt('gal.txt',dfs,delimiter='\t')
+
+#plt.scatter(dfs['x'], dfs['y'])
+#plt.show()
 
 
 fim = time.time()
