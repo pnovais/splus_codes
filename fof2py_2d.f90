@@ -24,7 +24,7 @@ ii = 0
 n_group = 0 ! Total number of groups
 idx_group = 0.  ! Indexes of groups
 do i=1,n_DF-1,1
- if (mod(i,1000).eq.0)print*,i,n_DF-1
+ !if (mod(i,1000).eq.0)print*,i,n_DF-1
  do j=i+1,n_DF,1
   if (dist(x(i),y(i),x(j),y(j)).le.l_linking) then ! distance is closer than l_linking?
    if ((idx_group(i).eq.0).and.(idx_group(j).eq.0)) then   ! both do not have group yet

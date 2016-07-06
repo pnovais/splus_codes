@@ -21,6 +21,17 @@ from matplotlib.colors import LogNorm
 from mpl_toolkits.mplot3d import Axes3D
 import fof_fortran
 import matplotlib.mlab as mlab
+from sklearn import datasets
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.preprocessing import scale
+import rpy2
+from rpy2.robjects.packages import importr
+import rpy2.robjects as ro
+import pandas.rpy.common as com
+from rpy2.robjects import pandas2ri
+
+
 
 
 class bcolors:
@@ -288,10 +299,7 @@ arr2=df_seg['y']
 n=len(df_seg)
 l=1
 
-print(n)
-
 a = fof_fortran.fof(arr1, arr2,l,n)
-
 
 df_ff=pd.DataFrame(a)
 
@@ -319,7 +327,6 @@ df_x = reduce(lambda left, right: pd.merge(left,right),[df_seg,df_ff])
 #df_x = df_seg.join(df_ff, lsuffix='_l', rsuffix='_r')
 
 np.savetxt('indexes.txt',a,delimiter='\t')
-
 
 
 #MAKING HISTOGRAMS
@@ -361,7 +368,72 @@ np.savetxt('gal.txt',dfs,delimiter='\t')
 #plt.scatter(dfs['x'], dfs['y'])
 #plt.show()
 
+m = len(dfs)
 
+print("Total de pixeis acima do limiar: %d" %n)
+print("Total de pixeis da galaxia segmentada: %d" %m)
+
+
+str5="Principal components Analysis - PCA (using R)"
+
+print('')
+print('*'*67)
+print(bcolors.FAIL + str5.upper().center(64) + bcolors.ENDC)
+print('*'*67)
+
+
+#convertendo o dataframe do pandas em um dataframe dentro do R
+rdf=com.convert_to_r_dataframe(dfs)
+
+ro.globalenv['data'] = rdf
+ro.r('mydata <- data[3:14]')
+ro.r('mydata_coord <- data[1:2]')
+ro.r('my_data_coord <- data[1:2]')
+
+# pca com variaveis com media zero e variancia unitaria
+ro.r('mydata.pca <- prcomp(mydata, retx=TRUE, center=TRUE, scale=TRUE)')
+
+# raiz quadrada dos autovalores (singular value)
+ro.r('sd <- mydata.pca$sdev')
+
+# autovalores
+ro.r('lambda <- sd^2')
+
+# autovetores
+ro.r('autovec <- mydata.pca$rotation')
+
+# nomes das colunas
+ro.r('rownames(autovec)')
+
+# componentes principais
+pca_r = ro.r('pc <- mydata.pca$x')
+
+# preparacao para impressao
+ro.r('nl <- min(length(lambda),10)')
+ro.r('na <- min(length(autovec)^0.5, 10)')
+
+# distance biplot
+ro.r('pdf("Rpca.pdf")')
+ro.r('plot(pc[,1], pc[,2], xlab="PCA 1", ylab="PCA 2",type="n", xlim=c(min(pc[,1:2]), max(pc[,1:2])),ylim=c(min(pc[,1:2]), max(pc[,1:2])))')
+ro.r('points(pc[,1], pc[,2])')
+ro.r('dev.off()')
+
+#unindo os dados novamente
+pydf = ro.r('teste <- cbind(mydata_coord,mydata,pc)')
+
+
+pydf2 = pandas2ri.ri2py_dataframe(pydf)
+
+print(pydf2.head())
+
+plt.figure()
+plt.scatter(pydf2['PC1'],pydf2['flux_r'], color='red')
+plt.show()
+
+#ro.r('plot(teste$V3-teste$V5,teste$PC1)')
+
+print('')
+print("-="*34)
 fim = time.time()
 time_proc = fim - ini
 print('tempo de processamento: %fs' %time_proc)
