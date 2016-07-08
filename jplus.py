@@ -21,10 +21,9 @@ from matplotlib.colors import LogNorm
 from mpl_toolkits.mplot3d import Axes3D
 import fof_fortran
 import matplotlib.mlab as mlab
-from sklearn import datasets
-from sklearn.decomposition import PCA
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.preprocessing import scale
+import scipy, pylab
+from pandas import DataFrame
+import seaborn
 import rpy2
 from rpy2.robjects.packages import importr
 import rpy2.robjects as ro
@@ -44,23 +43,6 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-
-def distancias(df_seg):
-    d = 0.0
-    for i in df_seg:
-        d = df_seg[0][i] - df_seg[0][i+1]
-    return sqrt(d)
-
-#a funcao, de fato, utilizada
-def distance(x1,y1,x2,y2):
-    dist = 0.0
-    dist = (x1-x2)**2 + (y1-y2)**2
-    d = np.sqrt(dist)
-    return d
-
-def dist(row):
-    return np.sqrt(np.sum((row[1]-row[2])**2))
-
 ini=time.time()
 
 now = datetime.date.today()
@@ -73,7 +55,11 @@ print('===================================================================')
 print('==================================================================='+ bcolors.ENDC)
 
 
-
+'''
+================================================================================
+Abrindo os arquivos
+================================================================================
+'''
 
 #ABRINDO OS ARQUIVOS COM AS CONTAGENS (12 BANDAS)
 print('')
@@ -145,6 +131,11 @@ headers2='''x\ty\tflux_u\tflux_g\tflux_r\tflux_i\tflux_z\tflux_J0378\tflux_J0395
 np.savetxt(saida_fluxes,df_fin, fmt=formats, delimiter='\t',header=headers2)
 print('As contagens podem ser encontradas no arquivo "%s".' %saida_fluxes)
 
+'''
+================================================================================
+Recortando a imagem e subtraindo o ceu
+================================================================================
+'''
 
 #COORDENADAS DO CEU E COORDENADAS DO RECORTE
 xc1=240
@@ -166,11 +157,9 @@ print(bcolors.FAIL + s.center(64) + bcolors.ENDC)
 print('*'*67)
 
 
-
 #Criando novos frames para calcular as estatisticas do ceu, na banda r
 #Selecao apenas das colunas x,y e flux_r
 #df_sky_r=df_fin.ix[:,[0,1,4]]
-
 
 #selecao dos pontos que pertencem a regiao do ceu escolhida
 df = df_fin.ix[(df_fin['x'] > xc1) & (df_fin['x'] < xc2) & (df_fin['y'] > yc1)
@@ -205,6 +194,12 @@ df_rss=df_aux1.join(df_aux3)
 df_corgr = df_rss['flux_g'] / df_rss['flux_r']
 
 
+'''
+================================================================================
+Propriedades da area a ser analisada
+================================================================================
+'''
+
 str3="Algumas propriedades da area a ser analisada"
 
 print('')
@@ -220,8 +215,8 @@ print('''Contagens min. e max., na banda r, ceu subtr.:
 print('''Cor* min. e max., na banda r, ceu subtr.: %5.4f, %5.4f'''
       %(df_corgr.min(), df_corgr.max()))
 print('')
-print(bcolors.HEADER + '''***a cor foi calculada, de forma simplista e apenas para
-      conferir os resultados,como a razao entre as bandas 1 e 2
+print(bcolors.HEADER + '''***a cor foi calculada, de forma simplista e apenas
+      para conferir os resultados,como a razao entre as bandas 1 e 2
       (flux_banda1/flux_banda2), quanto menor a razao,mais
       vermelho o pixel''' +bcolors.ENDC)
 print('')
@@ -232,6 +227,14 @@ print('')
 A segmentacao consiste de usar um limiar para separar o objeto do fundo.
 No nosso caso, usamos limiar = alpha*std_ceu
 """
+
+
+'''
+================================================================================
+SEGMENTACAO
+================================================================================
+'''
+
 
 str4 = "segmentacao"
 print('')
@@ -257,11 +260,15 @@ print('Num. total de pixeis: %d' %pix)
 print('Pixeis acima do limiar: %d' %alimiar)
 print('Fracao de pixeis acima do limiar: %5.5f' %pix_acima)
 
-#plt.scatter(df_seg['x'], df_seg['y'])
-#plt.show()
+
 
 np.savetxt('teste.txt',df_seg, fmt=formats, delimiter='\t')
+
 '''
+================================================================================
+Friends of Friends
+================================================================================
+
 Friends of friends ira identificar os pixeis, na banda r, que pertencem
 a galaxia, separando dos residuos da imagem.
 '''
@@ -273,15 +280,9 @@ print('*'*67)
 print(bcolors.FAIL + str4.upper().center(64) + bcolors.ENDC)
 print('*'*67)
 
-'''
-df_fof=df_seg.ix[:,:2]
-print(df_fof.head())
-np.savetxt('fof.txt',df_fof, delimiter='\t')
-'''
 
 formats2=['%d','%d','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f',
           '%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%5.4f','%d']
-
 
 #if-then-else using numpys where()
 
@@ -290,10 +291,6 @@ df_rss2 = df_rss
 df_rss2['logic']= np.where(df_rss['flux_r'] > limiar, 1, 0)
 np.savetxt('fof2.txt',df_rss2,fmt=formats2, delimiter='\t')
 
-#df_seg['distancia'] = df_seg.apply(dist, axis=1)
-
-
-#print(df_seg.head())
 arr1=df_seg['x']
 arr2=df_seg['y']
 n=len(df_seg)
@@ -308,71 +305,98 @@ df_ff.columns = ['fof']
 compr=len(df_seg)
 labels = []
 
-
-
 #criando os rotulos iniciais
 for row in range(0,compr):
     labels.append(row)
 
-
 df_seg['label'] = labels
-
 df_ff['label']=labels
 
 
-
 df_x = reduce(lambda left, right: pd.merge(left,right),[df_seg,df_ff])
-#df_x=df_seg.join(df_ff)
 
-#df_x = df_seg.join(df_ff, lsuffix='_l', rsuffix='_r')
-
-np.savetxt('indexes.txt',a,delimiter='\t')
-
+#np.savetxt('indexes.txt',a,delimiter='\t')
 
 #MAKING HISTOGRAMS
-plt.hist(a)
-plt.axis([0, 50,0,8000])
+#plt.hist(a)
+#plt.axis([0, 50,0,8000])
 #plt.show()
 
-
 #Making a 3D plot
-fig = plt.figure()
-ax = fig.gca(projection='3d')
 
-ax.set_title('3D Scatter Plot')
-ax.set_xlabel('Column a')
-ax.set_ylabel('Column b')
-ax.set_zlabel('Column c')
+#ax = fig.gca(projection='3d')
 
-ax.set_xlim(0, 500)
-ax.set_ylim(0, 500)
-ax.set_zlim(33, 36)
+#ax.set_title('3D Scatter Plot')
+#ax.set_xlabel('Column a')
+#ax.set_ylabel('Column b')
+#ax.set_zlabel('Column c')
 
-ax.view_init(elev=0, azim=20)              # elevation and angle
-ax.dist=12
+#ax.set_xlim(0, 500)
+#ax.set_ylim(0, 500)
+#ax.set_zlim(33, 36)
 
-ax.scatter(
-           df_x['x'], df_x['y'], df_x['fof'],  # data
-           color='purple',                            # marker colour
-           marker='o',                                # marker shape
-           s=30                                       # marker size
-           )
+#ax.view_init(elev=0, azim=20)              # elevation and angle
+#ax.dist=12
 
+#ax.scatter(
+#           df_x['x'], df_x['y'], df_x['fof'],  # data
+#           color='purple',                            # marker colour
+#           marker='o',                                # marker shape
+#           s=30                                       # marker size
+#           )
 
 #plt.show()
 
 dfs = df_x.ix[(df_x['fof'] > 34.5) & (df_x['fof'] < 35.5)]
 
+#salvando os pixeis da galaxia em um arquivo txt
 np.savetxt('gal.txt',dfs,delimiter='\t')
 
-#plt.scatter(dfs['x'], dfs['y'])
+
+fig = plt.figure()
+
+axes = plt.gca()
+axes.xaxis.set_tick_params(labelsize=15)
+axes.yaxis.set_tick_params(labelsize=15)
+
+labelfont = {
+        'family' : 'sans-serif',  # (cursive, fantasy, monospace, serif)
+        'color'  : 'black',       # html hex or colour name
+        'weight' : 'normal',      # (normal, bold, bolder, lighter)
+        'size'   : 14,            # default value:12
+        }
+
+titlefont = {
+        'family' : 'serif',
+        'color'  : 'black',
+        'weight' : 'bold',
+        'size'   : 16,
+        }
+
+plt.scatter(dfs['x'], dfs['y'],
+            color='dodgerblue',
+            label='Spatial Distribution')
+
+plt.title('Spatial Distribution', fontdict=titlefont)
+plt.xlabel('X', fontdict=labelfont, fontweight='bold')
+plt.ylabel('Y', fontdict=labelfont)
+
+fig.savefig('distrib_FoF.png')
+
 #plt.show()
 
 m = len(dfs)
 
+print('')
 print("Total de pixeis acima do limiar: %d" %n)
 print("Total de pixeis da galaxia segmentada: %d" %m)
 
+
+'''
+================================================================================
+PCA com o R
+================================================================================
+'''
 
 str5="Principal components Analysis - PCA (using R)"
 
@@ -386,51 +410,256 @@ print('*'*67)
 rdf=com.convert_to_r_dataframe(dfs)
 
 ro.globalenv['data'] = rdf
-ro.r('mydata <- data[3:14]')
+ro.r('mydata2 <- data[3:14]')
 ro.r('mydata_coord <- data[1:2]')
 ro.r('my_data_coord <- data[1:2]')
 
+#calculando as "cores"
+ro.r('data2 = mydata2 - mydata2$flux_r')
+ro.r('data2b = data2[1:2]')
+ro.r('data2c = data2[4:12]')
+ro.r('mydata = cbind(data2b,data2c)')
+
 # pca com variaveis com media zero e variancia unitaria
 ro.r('mydata.pca <- prcomp(mydata, retx=TRUE, center=TRUE, scale=TRUE)')
-
 # raiz quadrada dos autovalores (singular value)
 ro.r('sd <- mydata.pca$sdev')
-
 # autovalores
-ro.r('lambda <- sd^2')
+lamb = ro.r('lambda <- sd^2')
+print('> Autovalores das Componentes Principais <')
+print(ro.r('lambda'))
+#autovalo = pandas2ri.ri2py_dataframe(autoval)
 
 # autovetores
 ro.r('autovec <- mydata.pca$rotation')
-
 # nomes das colunas
 ro.r('rownames(autovec)')
-
 # componentes principais
-pca_r = ro.r('pc <- mydata.pca$x')
+ro.r('pc <- mydata.pca$x')
 
 # preparacao para impressao
 ro.r('nl <- min(length(lambda),10)')
 ro.r('na <- min(length(autovec)^0.5, 10)')
 
 # distance biplot
-ro.r('pdf("Rpca.pdf")')
-ro.r('plot(pc[,1], pc[,2], xlab="PCA 1", ylab="PCA 2",type="n", xlim=c(min(pc[,1:2]), max(pc[,1:2])),ylim=c(min(pc[,1:2]), max(pc[,1:2])))')
-ro.r('points(pc[,1], pc[,2])')
-ro.r('dev.off()')
+#ro.r('pdf("Rpca.pdf")')
+#ro.r('plot(pc[,1], pc[,2], xlab="PCA 1", ylab="PCA 2",type="n", xlim=c(min(pc[,1:2]), max(pc[,1:2])),ylim=c(min(pc[,1:2]), max(pc[,1:2])))')
+#ro.r('points(pc[,1], pc[,2])')
+#ro.r('dev.off()')
 
 #unindo os dados novamente
 pydf = ro.r('teste <- cbind(mydata_coord,mydata,pc)')
+pca_ord = ro.r('pc_ord <- teste[order(teste$PC1),]')
+pydf2 = pandas2ri.ri2py_dataframe(pca_ord)
+
+ro.r('compr = nrow(pc_ord)')
+
+pca_ord1 = ro.r('data1 <- pc_ord[1:nrow(pc_ord)/4,]')
+pca_ord2 = ro.r('data2 <- pc_ord[(compr/4 + 1):(compr/2),]')
+pca_ord3 = ro.r('data3 <- pc_ord[(compr/2 + 1):(3*compr/4),]')
+pca_ord4 = ro.r('data4 <- pc_ord[(3*compr/4 + 1):compr,]')
+
+pca1 = pandas2ri.ri2py_dataframe(pca_ord1)
+pca2 = pandas2ri.ri2py_dataframe(pca_ord2)
+pca3 = pandas2ri.ri2py_dataframe(pca_ord3)
+pca4 = pandas2ri.ri2py_dataframe(pca_ord4)
 
 
-pydf2 = pandas2ri.ri2py_dataframe(pydf)
 
-print(pydf2.head())
+f, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2, sharex='col', sharey='row')
+ax1.scatter(pca1['x'],pca1['y'], color="red")
+ax2.scatter(pca2['x'],pca2['y'], color="yellow")
+ax3.scatter(pca3['x'],pca3['y'], color="green")
+ax4.scatter(pca4['x'],pca4['y'], color="blue")
+plt.savefig('Distribution_4panel.png')
+
 
 plt.figure()
-plt.scatter(pydf2['PC1'],pydf2['flux_r'], color='red')
-plt.show()
+plt.scatter(pca1['x'],pca1['y'], color="red")
+plt.scatter(pca2['x'],pca2['y'], color="yellow")
+plt.scatter(pca3['x'],pca3['y'], color="green")
+plt.scatter(pca4['x'],pca4['y'], color="blue")
+plt.savefig('Distribution_all.png')
 
-#ro.r('plot(teste$V3-teste$V5,teste$PC1)')
+
+#plt.show()
+pydf2.columns = ['x','y','u-r','g-r','i-r','z-r','0378-r','0395-r','0410-r','0430-r',
+                '0515-r','0660-r','0861-r','PC1', 'PC2', 'PC3', 'PC4', 'PC5',
+                'PC6', 'PC7', 'PC8', 'PC9', 'PC10', 'PC11']
+
+#plt.clf() #Clear the current figure (prevents multiple labels)
+
+
+plt.figure()
+
+plt.title('Principal Components Analysis', fontdict=titlefont)
+plt.xlabel('PC1', fontdict=labelfont)
+plt.ylabel('PC2', fontdict=labelfont)
+
+axes = plt.gca()
+axes.xaxis.set_tick_params(labelsize=15)
+axes.yaxis.set_tick_params(labelsize=15)
+
+plt.scatter(pydf2['PC1'],pydf2['PC2'],
+            color='teal')
+
+plt.savefig('PC1_PC2.png')
+
+#plt.show()
+
+
+
+'''
+================================================================================
+Calculando os momentos invariantes de Hu
+================================================================================
+'''
+
+str6="Hu Invariant Moments"
+
+print('')
+print('*'*67)
+print(bcolors.FAIL + str6.upper().center(64) + bcolors.ENDC)
+print('*'*67)
+
+
+'''
+!======================================================
+!================CENTROIDES DA IMAGEM==================
+!======================================================
+!xc = M10/M00
+!yc = M01/M00
+!
+!onde xc e yc sao os centroides da imagem, M10, M01 e
+!M00 os momentos nao centrais, onde
+!
+!Mpq=Somatorio(x^p.y^q)
+!------------------------------------------------------
+'''
+
+print('*'*50)
+
+m10=pydf2['x'].sum()
+m01=pydf2['y'].sum()
+
+cx = int(m10/len(pydf2))
+cy = int(m01/len(pydf2))
+
+re = np.sqrt(len(pydf2)/3.14)
+
+print('Centroides (Cx,Cy) da imagem: (%d,%d)' %(cx,cy))
+print('Raio equivalente (m00/pi): %5.3f'%re)
+
+f = open('parametros_hu.txt', 'w')
+f.write('#Populacao Rm/re   std I1  I2  I3  I4  I5  I6  I7  a   b   f=a+b/2 tetha   Exc     flong   \n')
+f.close()
+
+def Humoments(pca,p):
+    pca['raio'] = np.sqrt((pca['x'] - cx)**2 + (pca['y'] - cy)**2)
+    Rm = pca['raio'].mean()
+    SigR = pca['raio'].std()
+    Rm_re = pca['raio'].mean()/re
+    SigR_re = pca['raio'].std()/re
+    print('')
+    print('/'*70)
+    print('Hu moments - Populacao %d' %p)
+    print('Raio medio Rm: %5.3f +- %5.3f' %(Rm,SigR))
+    print('Raio madio ponderado Rm/Re: %5.3f +- %5.3f' %(Rm_re,SigR_re))
+
+    file = open('parametros_hu.txt', 'a')
+    '''
+    Momentos da imagem
+    Ver: http://pt.wikipedia.org/wiki/Momentos_Invariantes_de_uma_Imagem
+    '''
+
+    #nao centrais de 2 ordem
+    m11=(pca['x']*pca['y']).sum()
+    m20=(pca['x']*pca['x']).sum()
+    m02=(pca['y']*pca['y']).sum()
+
+    #centrais de 3 ordem
+    mu_11=((pca['x']-cx)*(pca['y']-cy)).sum()
+    mu_20=((pca['x']-cx)**2).sum()
+    mu_02=((pca['y']-cy)**2).sum()
+
+    mu_12=((pca['x']-cx)*((pca['y']-cy)**2)).sum()
+    mu_21=((pca['y']-cx)*((pca['x']-cx)**2)).sum()
+
+    mu_30=((pca['x']-cx)**3).sum()
+    mu_03=((pca['y']-cy)**3).sum()
+
+    #centrais de 4 ordem
+    mu_40=((pca['x']-cx)**4).sum()
+    mu_04=((pca['y']-cy)**4).sum()
+
+    #print('Momentos nao centrais m11, m20, m02: %d, %d, %d' %(m11, m20, m02))
+    #print('Momentos centrais mu_11, mu_20, mu_02: %d, %d, %d' %(mu_11, mu_20, mu_02))
+    #print('Momentos centrais mu_12, mu_21: %d, %d' %(mu_12, mu_21))
+
+    #Momentos invariantes por escala n_ij
+    n11=mu_11/(len(pca)**2)
+    n12=mu_12/(len(pca)**2.5)
+    n21=mu_21/(len(pca)**2.5)
+    n02=mu_02/(len(pca)**2)
+    n20=mu_20/(len(pca)**2)
+    n30=mu_30/(len(pca)**2.5)
+    n03=mu_03/(len(pca)**2.5)
+
+    #Momentos invariantes por translacao, escala e rotacao
+    #Invariantes de Hu
+    I1 = n02 + n20
+    I2 = ((n20-n02)**2) + 4*((n11)**2)
+    I3 = (n30 - 3*n12)**2 + (3*n21 - n03)**2
+    I4 = (n30 + 3*n12)**2 + (3*n21 + n03)**2
+    I5 = (n30 - 3*n12)*(n30 + n12)*(((n30 + n12)**2) - 3*((n21 + n03)**2)) + (3*n21 - n03)*(n12 + n03)*(3*((n30 + n12)**2) - ((n21 + n03)**2))
+    I6 = (n20 - n02)*((n30 + n12)**2 - (n21 + n03)**2) + 4*n11*(n30 + n12)*(n21 + n03)
+    I7 = (3*n21 - n03)*(n30 + n12)*((n30 + n12)**2 - 3*(n21 + n03)**2) - (n30 - 3*n12)*(n21 + n03)*(3*(n30 + n12)**2 - (n21 + n03)**2)
+
+    print('Hu Moments: %5.2e, %5.2e, %5.2e, %5.2e, %5.2e, %5.2e, %5.2e' %(I1, I2, I3, I4, I5, I6, I7))
+
+    #Parametros da Elipse
+    dd = (mu_20 + mu_02)
+    ee = (mu_20 - mu_02)*(mu_20 - mu_02) + 4*(mu_11)*(mu_11)
+    a = np.sqrt((2*(dd + np.sqrt(ee)))/len(pca))
+    b = np.sqrt((2*(dd - np.sqrt(ee)))/len(pca))
+    print('')
+    print('Parametros obtidos')
+    print('Semi-eixos da elipse (a,b): %5.3f, %5.3f' %(a,b))
+
+    #Razao dos semi-eixos
+    f = (a+b)/2
+    print('razao dos eixos (a+b/2): %5.3f' %f)
+
+    #Orientacao da Elipse
+    tetha = 0.5*np.arctan((2*mu_11)/(mu_20 - mu_02))
+    print('Orientacao da elipse, tetha: %5.3f' %tetha)
+
+    #Excentricidade
+    exc = 1 - (b/a)
+    print('Excentricidade da Elipse, e: %5.3f' %exc)
+
+    #FATOR DE ELONGACAO
+    flong = np.sqrt((mu_02/mu_20))
+    print('Fator de elongacao, flong: %5.3f' %flong)
+
+    file.write('%s %s %s %s %s %s %s %s %s  %s %s %s %s %s %s %s\n' %(p, Rm_re, SigR_re, I1, I2, I3, I4, I5, I6, I7, a, b, f,
+                tetha, exc, flong))
+    return()
+
+
+Humoments(pca1,p=1)
+Humoments(pca2,p=2)
+Humoments(pca3,p=3)
+Humoments(pca4,p=4)
+
+
+
+
+
+
+
+
+#f.close()
 
 print('')
 print("-="*34)
