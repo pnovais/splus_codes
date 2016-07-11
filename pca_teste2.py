@@ -32,7 +32,8 @@ import numpy.linalg as la
 import scipy, pylab
 from pandas import DataFrame
 import seaborn
-
+import math
+import fof_fortran
 
 ini=time.time()
 
@@ -91,7 +92,7 @@ data8=data4.ix[(data4['label'] >= int(3*compr/4))]
 print("*"*80)
 print(data5.tail())
 
-
+'''
 f, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2, sharex='col', sharey='row')
 ax1.scatter(data5['x'],data5['y'], color="red")
 ax2.scatter(data6['x'],data6['y'], color="yellow")
@@ -108,7 +109,7 @@ plt.scatter(data8['x'],data8['y'], color="blue")
 
 
 plt.show()
-
+'''
 #print(len(data5))
 
 
@@ -241,11 +242,35 @@ flong = np.sqrt((mu_02/mu_20))
 print(flong)
 
 
+'''
+Simetria
+'''
+
+cte = cy - tetha*cx
+
+sym1 = data5.ix[data5['y'] >= tetha*data5['x'] + cte]
+sym2 = data5.ix[data5['y'] < tetha*data5['x'] + cte]
+
+print(len(sym1),len(sym2),len(data5),len(data4))
 
 
+SYM = 1 - (math.fabs(len(sym1) - len(sym2))/(len(sym1) + len(sym2)))
+print('')
+print('Parametro de simetria: %5.4f' %SYM)
 
+arr1=data5['x']
+arr2=data5['y']
+n=len(data5)
+l=1
+aaa = fof_fortran.fof(arr1, arr2,l,n)
 
+df_ff=pd.DataFrame(aaa)
 
+df_ff.columns = ['fof']
+
+np.savetxt('bla.txt', df_ff)
+
+print(df_ff.describe())
 
 print('')
 print('*'*70)

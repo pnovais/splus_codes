@@ -23,13 +23,13 @@ import fof_fortran
 import matplotlib.mlab as mlab
 import scipy, pylab
 from pandas import DataFrame
-import seaborn
+import seaborn as sns
 import rpy2
 from rpy2.robjects.packages import importr
 import rpy2.robjects as ro
 import pandas.rpy.common as com
 from rpy2.robjects import pandas2ri
-
+import math
 
 
 
@@ -467,18 +467,18 @@ pca4 = pandas2ri.ri2py_dataframe(pca_ord4)
 
 
 f, ((ax1,ax2), (ax3,ax4)) = plt.subplots(2,2, sharex='col', sharey='row')
-ax1.scatter(pca1['x'],pca1['y'], color="red")
-ax2.scatter(pca2['x'],pca2['y'], color="yellow")
-ax3.scatter(pca3['x'],pca3['y'], color="green")
-ax4.scatter(pca4['x'],pca4['y'], color="blue")
+ax1.scatter(pca1['x'],pca1['y'], color="blue")
+ax2.scatter(pca2['x'],pca2['y'], color="green")
+ax3.scatter(pca3['x'],pca3['y'], color="goldenrod")
+ax4.scatter(pca4['x'],pca4['y'], color="red")
 plt.savefig('Distribution_4panel.png')
 
 
 plt.figure()
-plt.scatter(pca1['x'],pca1['y'], color="red")
-plt.scatter(pca2['x'],pca2['y'], color="yellow")
-plt.scatter(pca3['x'],pca3['y'], color="green")
-plt.scatter(pca4['x'],pca4['y'], color="blue")
+plt.scatter(pca1['x'],pca1['y'], color="blue")
+plt.scatter(pca2['x'],pca2['y'], color="green")
+plt.scatter(pca3['x'],pca3['y'], color="goldenrod")
+plt.scatter(pca4['x'],pca4['y'], color="red")
 plt.savefig('Distribution_all.png')
 
 
@@ -506,6 +506,17 @@ plt.scatter(pydf2['PC1'],pydf2['PC2'],
 plt.savefig('PC1_PC2.png')
 
 #plt.show()
+
+
+df_corr = pydf2.ix[:,2:14]
+corr=df_corr.corr(method='pearson')
+# Generate a mask for the upper triangle
+mask = np.zeros_like(corr, dtype=np.bool)
+mask[np.triu_indices_from(mask)] = True
+f, ax = plt.subplots(figsize=(11, 9))
+cmap = sns.diverging_palette(220, 10, as_cmap=True)
+sns.heatmap(corr,mask=mask)
+plt.savefig('Correlation_PC1_cores.png')
 
 
 
@@ -554,7 +565,7 @@ f = open('parametros_hu.txt', 'w')
 f.write('#Populacao Rm/re   std I1  I2  I3  I4  I5  I6  I7  a   b   f=a+b/2 tetha   Exc     flong   \n')
 f.close()
 
-def Humoments(pca,p):
+def Humoments(pca,cx,cy,p):
     pca['raio'] = np.sqrt((pca['x'] - cx)**2 + (pca['y'] - cy)**2)
     Rm = pca['raio'].mean()
     SigR = pca['raio'].std()
@@ -644,17 +655,36 @@ def Humoments(pca,p):
 
     file.write('%s %s %s %s %s %s %s %s %s  %s %s %s %s %s %s %s\n' %(p, Rm_re, SigR_re, I1, I2, I3, I4, I5, I6, I7, a, b, f,
                 tetha, exc, flong))
+    '''
+    Simetria
+    '''
+    cte = cy - tetha*cx
+    sym1 = pca.ix[pca['y'] >= tetha*pca['x'] + cte]
+    sym2 = pca.ix[pca['y'] < tetha*pca['x'] + cte]
+
+    SYM = 1 - (math.fabs(len(sym1) - len(sym2))/(len(sym1) + len(sym2)))
+    print('')
+    print('Parametro de simetria: %5.4f' %SYM)
+
+    arr1=pca['x']
+    arr2=pca['y']
+    n=len(pca)
+    l=1
+    fof = fof_fortran.fof(arr1, arr2,l,n)
+    df_fof=pd.DataFrame(fof)
+    df_fof.columns = ['fof']
+    print(df_fof.describe())
+
+
+
+
     return()
 
 
-Humoments(pca1,p=1)
-Humoments(pca2,p=2)
-Humoments(pca3,p=3)
-Humoments(pca4,p=4)
-
-
-
-
+Humoments(pca1,cx,cy,p=1)
+Humoments(pca2,cx,cy,p=2)
+Humoments(pca3,cx,cy,p=3)
+Humoments(pca4,cx,cy,p=4)
 
 
 
