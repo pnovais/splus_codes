@@ -68,7 +68,7 @@ print(bcolors.FAIL + str1.center(64)+ bcolors.ENDC)
 print('*'*67)
 print('Lendo os arquivos com as contagens, em todas as bandas...')
 
-outpath = '/Dropbox/DOUTORADO/JPLUS_clusters/gal_A2589A2593'
+outpath = '/Dropbox/DOUTORADO/JPLUS_clusters/JPLUS/A2593/gal1_a2593'
 filename1 = 'gal-A2589-A2596_uJAVA_swp.txt'
 filename2 = 'gal-A2589-A2596_gSDSS_swp.txt'
 filename3 = 'gal-A2589-A2596_rSDSS_swp.txt'
@@ -168,7 +168,6 @@ print('Sumario das estatistica do ceu, na banda r:')
 print('Media: %5.5f' %df['flux_r'].mean())
 print('Std: %5.5f' %df['flux_r'].std())
 
-
 #binn = int(input('Binagem da imagem: Digite o tamanho do bin:'))
 binn=1
 
@@ -245,6 +244,8 @@ alpha=1.5
 limiar=alpha*df['flux_r'].std()
 #df eh o dataframe para a regiao do ceu considerada
 
+
+
 #SELECAO DOS PIXEIS ACIMA DO LIMIAR
 df_seg=df_rss.ix[df_rss['flux_r'] > limiar]
 
@@ -298,7 +299,7 @@ l=1
 arr=np.zeros(shape=len(df_seg))
 arr3=pd.DataFrame(arr)
 
-a = fof_fortran.fof(arr1, arr2,arr3,l,n)
+a = fof_fortran.fof(arr1,arr2,arr3,l,n)
 #a = fof_fortran.fof(arr1, arr2,l,n)
 
 df_ff=pd.DataFrame(a)
@@ -318,37 +319,14 @@ df_ff['label']=labels
 
 df_x = reduce(lambda left, right: pd.merge(left,right),[df_seg,df_ff])
 
-#np.savetxt('indexes.txt',a,delimiter='\t')
+np.savetxt('indexes.txt',a,delimiter='\t')
 
 #MAKING HISTOGRAMS
-#plt.hist(a)
-#plt.axis([0, 50,0,8000])
-#plt.show()
+fig = plt.figure()
+plt.hist(a,bins=1000)
+plt.axis([20, 30,0,6000])
+fig.savefig('histogram_FoF')
 
-#Making a 3D plot
-
-#ax = fig.gca(projection='3d')
-
-#ax.set_title('3D Scatter Plot')
-#ax.set_xlabel('Column a')
-#ax.set_ylabel('Column b')
-#ax.set_zlabel('Column c')
-
-#ax.set_xlim(0, 500)
-#ax.set_ylim(0, 500)
-#ax.set_zlim(33, 36)
-
-#ax.view_init(elev=0, azim=20)              # elevation and angle
-#ax.dist=12
-
-#ax.scatter(
-#           df_x['x'], df_x['y'], df_x['fof'],  # data
-#           color='purple',                            # marker colour
-#           marker='o',                                # marker shape
-#           s=30                                       # marker size
-#           )
-
-#plt.show()
 
 dfs = df_x.ix[(df_x['fof'] > 34.5) & (df_x['fof'] < 35.5)]
 
@@ -393,6 +371,7 @@ m = len(dfs)
 print('')
 print("Total de pixeis acima do limiar: %d" %n)
 print("Total de pixeis da galaxia segmentada: %d" %m)
+
 
 
 '''
@@ -484,7 +463,6 @@ plt.scatter(pca3['x'],pca3['y'], color="goldenrod")
 plt.scatter(pca4['x'],pca4['y'], color="red")
 plt.savefig('Distribution_all.png')
 
-
 #plt.show()
 pydf2.columns = ['x','y','u-r','g-r','i-r','z-r','0378-r','0395-r','0410-r','0430-r',
                 '0515-r','0660-r','0861-r','PC1', 'PC2', 'PC3', 'PC4', 'PC5',
@@ -520,6 +498,7 @@ f, ax = plt.subplots(figsize=(11, 9))
 cmap = sns.diverging_palette(220, 10, as_cmap=True)
 sns.heatmap(corr,mask=mask)
 plt.savefig('Correlation_PC1_cores.png')
+
 
 
 
@@ -565,7 +544,7 @@ print('Centroides (Cx,Cy) da imagem: (%d,%d)' %(cx,cy))
 print('Raio equivalente (m00/pi): %5.3f'%re)
 
 f = open('parametros_hu.txt', 'w')
-f.write('#Populacao Rm/re   std I1  I2  I3  I4  I5  I6  I7  a   b   f=a+b/2 tetha   Exc     flong   \n')
+f.write('#Populacao Rm/re   std I1  I2  I3  I4  I5  I6  I7  a   b   f=a+b/2 tetha   Exc     flong   Sim Conc\n')
 f.close()
 
 def Humoments(pca,cx,cy,p):
@@ -655,9 +634,6 @@ def Humoments(pca,cx,cy,p):
     #FATOR DE ELONGACAO
     flong = np.sqrt((mu_02/mu_20))
     print('Fator de elongacao, flong: %5.3f' %flong)
-
-    file.write('%s %s %s %s %s %s %s %s %s  %s %s %s %s %s %s %s\n' %(p, Rm_re, SigR_re, I1, I2, I3, I4, I5, I6, I7, a, b, f,
-                tetha, exc, flong))
     '''
     Simetria
     '''
@@ -669,14 +645,30 @@ def Humoments(pca,cx,cy,p):
     print('')
     print('Parametro de simetria: %5.4f' %SYM)
 
+    '''
+    Gini
+    '''
+
+    '''
+    Concentracao
+    '''
+    radius=pca.sort('raio')
+    r20=radius.iat[int(0.2*len(pca)),-1]
+    r80=radius.iat[int(0.8*len(pca)),-1]
+    Conc = 0.5*np.log((r80/r20))
+
     arr1=pca['x']
     arr2=pca['y']
+    arr=np.zeros(shape=len(pca))
+    arr3=pd.DataFrame(arr)
     n=len(pca)
     l=1
-    fof = fof_fortran.fof(arr1, arr2,l,n)
-    df_fof=pd.DataFrame(fof)
-    df_fof.columns = ['fof']
-    print(df_fof.describe())
+#    fof = fof_fortran.fof(arr1, arr2,arr3,l,n)
+#    df_fof=pd.DataFrame(fof)
+#    df_fof.columns = ['fof']
+#    print(df_fof.describe())
+    file.write('%s %s %s %s %s %s %s %s %s  %s %s %s %s %s %s %s %s %s\n' %(p, Rm_re, SigR_re, I1, I2, I3, I4, I5, I6, I7, a, b, f,
+                tetha, exc, flong, SYM, Conc))
 
 
 
